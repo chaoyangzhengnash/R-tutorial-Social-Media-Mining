@@ -1,5 +1,7 @@
 # R tutorial : Social Media Mining
 The tutorial is wrote by Chaoyang Zheng and Zhenghao Wang for PHD course: Advanced Statistical Leaning in HEC MONTREAL.
+![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/0.png "Optional title")
+
 ```
 function test() {
   console.log("notice the blank line before this function?");
@@ -7,6 +9,8 @@ function test() {
 ```
 ## 1.Introduction
 In the era of internet, more than 1 billion people log in to social media, making comments, sharing feelings and connecting friends. The increasing development of Social media network provides an unprecedented volume and variety of both personal and impersonal data that can be a valuable, given it provide a near real-time outlook on both social processes(public opinions towards event, such as politics) and natural process(such as natural disasters).
+
+
 
 In this report we are going to explain how to implement data mining techniques with social media data, speciﬁcally Twitter, to gain insights towards the social impacts and public perceptions of Covid 19. The rest of this project starts from a literature review, in which we discuss the deﬁnition of social media, social media mining, and compare the features of several popular R packages for analysing twitter data. Then, the step by step guidelines to extract, manipulate, and visualize twitter data are presented in the methodology part. Finally, the data analysis part will explain how to proceed sentiment analysis in the twitter data.
 
