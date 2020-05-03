@@ -31,7 +31,7 @@ Twitter has REST (Representational State Transfer) API which allows developers t
 
 In order to use the API to collect data, several packages are available for R. The most frequent used packages that you can ﬁnd online are ‘rtweet’,’twitterR’,’streamR’ and ‘RtwitterAPI’. Only three of them, ‘rtweet’,’twitterR’, and ’streamR’, are available on CRAN. ‘twitterR’ hasn’t updated since 2016, therefore, this package can not used in this project for the consideration and stability and adaptability. The main diﬀerence between ‘rtweet’ and ‘streamR’ is the capacity of functions within package. ‘rtweet’ has the most complete and robust functions among other packages. ‘rtweet’ is an implementation of calls for collecting and organize Twitter data compliance with Tweeter development policies. Users can easily get the lasted version from CRAN. A compact summary of diﬀerent functions from packages can be found in the table.
 
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/2.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/2.PNG" width="400">
 
 Basically, ‘trweet’ has three main goals: formulate and send request from user to Twitter, iterate over returned data and wrangling data into tidy format. This package can outputs tweets into standard ‘data.frame’ format , which is very friendly for further cleaning process. It is becoming a commonly used package for R programmer.
 
@@ -47,7 +47,7 @@ For text mining, several pre-process packages will be used. ‘tidytext’ packa
 ### 3.2 API application, authorization and token secret 
 Although ‘rtweet’ allows users to acquire tweets without developer account and private Twitter application, however, having a developer account and creating own application is always a better option. With the developer account and private app, users can make full use of ‘rtweet’. The table below shows the usage diﬀerence between public app and private app.
 
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/3.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/3.PNG" width="400">
 
 Users can apply for developer account with their existed Twitter account through https: //developer.twitter.com/en. After ﬁlling in several API usage purpose questions and signing acknowledgements, Twitter will contact you in several days for the application result.
 
@@ -55,7 +55,7 @@ After developer account activation, developers can create own APP for their pers
 
 The ﬁrst is browser-based authorization. Authentication with web browser requires installing ‘httpuv’ package. First, we need to navigate to application page and generate keys and secrete keys. With ‘rtweet’ package installed, a browser page will pop up when users passed the keys to create.token function, telling users that they get the access.
 
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/4.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/4.PNG" width="400">
 
 ```
 appname <- "ASL_Twitter_Project"
@@ -82,7 +82,7 @@ twitter_token<-create_token(
 access_token=access_token,
 access_secrect=access_token_secret)
 ```
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/5.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/5.PNG" width="400">
 
 Now, you are all set for mining Twitter!
 
@@ -91,7 +91,7 @@ This section, we will start with discussing some fundamental functions of social
 
 When working with Twitter API, it is important to understand the data limiting which helps regulated traﬃc caused by developer querying. Tweeter API is a collection of many small APIs, and diﬀerent API has diﬀerent limits. We can check the details of limits with rate.limit() function. The ‘reset’ column is time remaining in minutes for cool down.
 
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/6.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/6.PNG" width="400">
 
 The reset for querying friend of speciﬁc account is 15 minutes for each 15 requests. Therefore, we need to keep enough time for extracting data or shorten the length of query list. In the example, 75 sampled friends are pulled just for illustration, cost 1 hour and 15 minutes. The code below shows we extract followers and friends of Twitter account ”ek.turkina”. The output is a list of number (user.id) which present diﬀerent twitter account names instead of strings to protect privacy. Left table is follower table, and right one is friend table.
 
@@ -99,7 +99,7 @@ The reset for querying friend of speciﬁc account is 15 minutes for each 15 req
 my_followers <- get_followers("ek_turkina")
 my_friends <- get_friends("ek_turkina")
 ```
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/7.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/7.PNG" width="400">
 
 Then, in order to see whether there is a connection between followers, we also pulled out the friend of friends, which can be treated as nodes in graph. The query will pause for every 15 minutes because of the limitation.
 
@@ -120,7 +120,7 @@ for (a in 1:length(ids)){
 
 After getting these raw data, we need to do a little clean up for plotting. In order to ﬁnd the network through friends, we dropped all the rows that appear only once in the ‘friend’ column. 
 
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/8.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/8.PNG" width="400">
 
 Then we got the links which can be used create graph.
 
@@ -135,6 +135,72 @@ net <- friends %>%
   filter(count > 1)
 glimpse(net)
 ```
-![Alt text](https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/9.PNG "Optional title")
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/9.PNG" width="400">
+
+In the graph, one conception is very important, centrality. It measures and identiﬁes the most important vertices with a graph. In the context of social network, key node represents the most inﬂuential person. ‘tidygraph’ contains many diﬀerent measures of centrality, for example, betweenness, closeness. Here we used betweenness for illustration. Note that the graph is set as undirected, since only followers have connections to other nodes when links are directed.
+
+```
+library(tidygraph)
+g2 <- net %>% 
+  select(user, friend) %>%  # drop the count column
+  as_tbl_graph(directed = F) %>%  # make undirected
+  activate(nodes) %>% 
+  mutate(centrality = centrality_betweenness())
+g2
+
+ggraph(g2) +
+  geom_edge_link() +
+  geom_node_point(aes(size = centrality, colour = centrality)) +
+  theme_graph()
+```
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/10.PNG" width="400">
+
+As we can see from left bottom the graph, except connecting with two main nodes in the center, few followers are also connected because of other accounts. And those more connected nodes have higher centrality. This is only scratch some basic application for mining networks of friends and followers. Both of teammates in our team are not obsessed with Twitter. Highly recommend people who are heavily user of Twitter to mine more insightful and interesting network for their own account, that would be fun.
+
+### 3.4 Collecting tweets and cleaning data
+#### 3.4.1 Searching for tweets
+Compared with data sources such as NASA and USGS, which have structured cleaning steps to implement(for instance removing na or scaling data), data collected through social media usually have no speciﬁc rules to clean up, as the text data is created and curated by the user community. This means that we may have to perform extra steps to clean the data to ensure we are analyzing the right thing.
+
+Let’s starting from exploring the actual text of the tweets which will involve some text mining.
+
+First, we need load the rtweet and other needed R packagesand complete the authentication process in browser.
+
+```
+# load twitter library - the rtweet library is recommended now over twitteR
+library(rtweet)
+# plotting and pipes - tidyverse!
+library(ggplot2)
+library(dplyr)
+# text mining library
+library(tidytext)
+# plotting packages
+library(igraph)
+library(ggraph)
+
+appname <- "ASL_Twitter_Project"
+key <- "5PPc1TKJZx5FNjxNDIzCQjmKv"
+secret <- "mhlIz9U72H3MgT64MmjuSA2LJrtVjjygjTz2kGzLzmU0rqmjqU"
+twitter_token <- create_token(
+  app = appname,
+  consumer_key = key,
+  consumer_secret = secret)
+```
+Now we are ready to search twitter for recent tweets. In this example, let’s ﬁnd tweets that are using the words “COVID2019” in them. We use the rtweet::search.tweets() function to search. Please noted that Search.tweets() requires the following arguments:
+
+    q: the query word that we want to look for 
+    n: the number of tweets that we want returned. 
+    lang:the language of tweets to be collect include.
+    rts : indicating whether to include retweets in search results
+    
+```
+tweets <- search_tweets(q = "#COVID2019", n = 1000,lang = "en", include_rts = FALSE)
+```
+The output data.frame ”tweets” contain detailed information for tweets that use ”COVID2019” as hashtag, such as userid, location and text etc.
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/11.PNG" width="400">
+
+
+
+
 
 
