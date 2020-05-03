@@ -199,8 +199,381 @@ The output data.frame ”tweets” contain detailed information for tweets that 
 
 <img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/11.PNG" width="400">
 
+#### 3.4.2 Data cleaning
+Looking at the data above, it becomes clear that there is a lot of clean-up associated with social media data.
 
+A common way to implement text analysis is to create a list of unique words according to data. We should be noted that words with capitalization will be diﬀerent from words that are all lowercase, and we don’t need punctuation to be returned as a unique word. Meanwhile, we may also want to remove url in the text as they won’t for text analysis
 
+We can use the tidytext::unnest.tokens() function in the tidytext package to magically clean up our text! When we use this function the following things will be cleaned up in the text:
 
+    1.Convert text to lowercase: each word found in the text will converted to lowercase, so ensure that you don’t get duplicate words due to variation in capitalization. 
+    2.Punctuation is removed: all instances of periods, commas etc will be removed from your list of words. 
+    3.Unique id associated with the tweet: will be added for each occurrence of the word
+
+The unnest.tokens() function takes two arguments:
+
+    The name of the column where the unique word will be stored. 
+    The column name from the data.frame that we are using that we want to pull unique words from.
+
+```
+# remove http elements manually
+tweets$stripped_text <- gsub("http.*","",  tweets$text)
+tweets$stripped_text <- gsub("https.*","", tweets$stripped_text)
+
+# remove punctuation, convert to lowercase, add id for each tweet!
+tweets_clean <- tweets %>%
+  dplyr::select(stripped_text) %>%
+  unnest_tokens(word, stripped_text)
+```
+
+We may also noticed that the text contains some words that may not be useful to use. For instance “a” and “to”. In the word of text mining we call those words - ‘stop words’. We may want to remove these words from our analysis as they are ﬁllers used to compose a sentence. The ’tidytext’ package has a function that will help us clean up ’stop words’. What we need to do are just loading the stop.words data, which is simply a list of words that we may want to remove in a natural language analysis; then we use anti.join to remove all stop words.
+
+```
+# load list of stop words - from the tidytext package
+data("stop_words")
+cleaned_tweet_words <- tweets_clean %>%
+  anti_join(stop_words)
+```
+
+The ﬁnal cleaned output looks as follows, which is a list of unique words according to data.
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/12.PNG" width="400">
+
+### 3.5 Data visualization 
+In this part, we will explain how to visualize the twitter data to implement the preliminary analysis. Speciﬁcally, bar chart of word count, word network, and word cloud will be discussed.
+
+Let’s starting from loading data and install/load required libraries.
+
+```
+# load twitter library - the rtweet library is recommended now over twitteR
+library(rtweet)
+# plotting and pipes - tidyverse!
+library(ggplot2)
+library(dplyr)
+library("wordcloud")
+library("RColorBrewer")
+# text mining library
+library(tidytext)
+library(igraph)
+library(ggraph)
+library(tidyr)
+library(widyr)
+library(tm)
+library(igraph)
+library(ggraph)
+
+# Load data 
+tweets <- read.csv("tweets_COVID2019.csv")
+```
+
+Once the data and libraries are loaded successfully, we can implement data cleaning like we did in previous part.
+
+```
+start_date <- as.POSIXct('2020-03-24 00:00:00')
+end_date <- as.POSIXct('2020-03-26 00:00:00')
+
+tweet_clean <- tweets %>%
+  
+  mutate(date_time = as.POSIXct(date_time, format = "%a %b %d %H:%M:%S +0000 %Y"),
+         
+         tweet_text = gsub("\\s?(f|ht)(tp)(s?)(://)([^\\.]*)[\\.|/](\\S*)", 
+                           "", tweet_text)) %>% # remove signals
+  
+#  filter(date_time >= start_date & date_time <= end_date ) %>%   # Focus on the predifined period 
+
+  dplyr::select(tweet_text) %>%
+  unnest_tokens(word, tweet_text) %>%  # remove punctuation, convert to lowercase, add id for each tweet
+  
+  anti_join(stop_words) %>% # remove stopwords in tweet
+  
+  filter(!word == "rt") # remove all rows that contain "rt" or retweet
+```
+
+Next let’s explore the content of the tweets using some visualizing techniques to do basic text mining approaches.
+
+#### 3.5.1 Common words visualization
+First of all, we can generate a list of the most popular words found in the tweets related to COVID2019. To do this, we can simply use count and sort function, and call ggplot to plot the most frequent word:
+
+```
+tweet_clean %>%
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(x = "Count",
+       y = "Unique words",
+       title = "Count of unique words found in tweets")
+ ```
+ Then we can get the Bar-chart outputs for top 15 common words. See ﬁgure 12.
+ 
+ <img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/13.PNG" width="400">
+
+#### 3.5.2 Paired words visualization
+It is also a good idea to explore words that occur together in tweets using words network, we may found some interesting patterns in words distribution.
+
+As the data structure for paired words analysis is diﬀerent with Common words analysis, we need to re-clean and organize the twitter data. Speciﬁcally, this case we will create a data frame with two columns which contain word pairs found in the data and a third column that has the count of how many time that word pair is found in the data.
+
+```
+# Paired word analysis
+tweets_paired <- tweets %>%
+  dplyr::select(tweet_text) %>%
+  mutate(tweet_text = removeWords(as.character(tweet_text), stop_words$word)) %>%
+  mutate(tweet_text = gsub("\\brt\\b|\\bRT\\b", "", tweet_text)) %>%
+  mutate(tweet_text = gsub("http://*", "", tweet_text)) %>%
+  unnest_tokens(paired_words, tweet_text, token = "ngrams", n = 2)
+
+tweets_paired %>%
+  count(paired_words, sort = TRUE)
+
+tweets_separated <- tweets_paired %>%
+  separate(paired_words, c("word1", "word2"), sep = " ")
+
+# new bigram counts:
+tweets_word_counts <- tweets_separated %>%
+  count(word1, word2, sort = TRUE)
+tweets_word_counts
+```
+
+After the re-organization of twits data, the new data frame can be seen on ﬁgure 13:
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/14.PNG" width="400">
+
+Finally, plot the word network.
+
+```
+tweets_word_counts %>%
+  filter(n >= 4000) %>% # the frequency(n) should based on the nature of data 
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  #geom_edge_link(aes(edge_alpha = n, edge_width = n)) +
+  geom_node_point(color = "darkslategray4", size = 3) +
+  geom_node_text(aes(label = name), vjust = 3, size = 4) +
+  labs(title = "Word Network: Tweets during the COVID2019",
+       subtitle = "Mar 2020 - Text mining twitter data ",
+       x = "", y = "")
+  theme_void()
+```
+
+The following graph of word network shows that which words are most often being used together. Some pair of words distribute quite intuitively. For example, the word ”stay” is closed to word ”safe” and ”home”, while all of them are quite far away from ”negative words” located at the left side of word network, such as ”coranavarious” and ”pandemic”, hence we may reach some inference that, under this situation public may suppose ”stay home” equals to ”stay safe”.
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/15.PNG" width="400">
+
+3.5.3 Words cloud 
+Another common visualization techniques for social media data is word clouds, which is a potent communication tool, and is easy to understand, to be shared and is impactful.
+
+What we need to is just get the frequency of tokens appeared in the data, then call wordcloud function(from wordcloud package) to plot them.
+
+```
+tweet_clean_freq <- as.data.frame(table(tweet_clean))
+ 
+wordcloud(words = tweet_clean_freq$tweet_clean, 
+            freq = tweet_clean_freq$Freq,min.freq = 1000, 
+            max.words=300,
+            random.order=FALSE,
+            rot.per=0.35, 
+            colors=brewer.pal(8, "Dark2"))
+```
+
+The following word cloud clearly shows that “coronavirus”, “lockdown” and “stay” are the three most frequent words in tweets using covid2019 as hashtag.
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/16.PNG" width="400">
+
+### 3.6 Mapping tweet location 
+Now, we will create a map that shows the location from where people were tweeting during this COVID2019 pandemic. Please noted that even though some tweets collected by rtweet including coordinates, while most of them(99.9 percent) do not have latitude and longitude information. One solution is that we can use the city name as the proxy to get location info, as about 15 percent of tweets attached with city tag.
+
+Firstly. let’s load the data again, and remove tweets that have no city tag.
+
+```
+# Create Maps of Social Media Twitter Tweet Locations Over Time in R
+tweets2<-tweets
+
+tweets2$city <- as.character(tweets2$city)
+
+tweets2$city[tweets2$city == "NA"] <- NA
+  
+tweets3 <- dplyr::filter(tweets, !is.na(city)) 
+```
+
+Then, we make loop to get coordinates for each tweet, based on the city name and country code. Please noted that in this case, since we are actually referencing geography information from an external website (nominatim.com), which have a limitation of access(about 1000 access every day), we should be careful once our tweets data is relatively big.
+
+```
+# get coords basde on city & country
+counter <- 1
+tweets3$lon[counter] <- 0
+tweets3$lat[counter] <- 0
+
+while (counter <= nrow(tweets3)){
+  CityName <- gsub(' ','%20',tweets3$city[counter]) #remove space for URLs
+  CountryCode <- tweets3$country_code[counter]
+  url <- paste(
+    "https://nominatim.openstreetmap.org/search.php?q="
+    , CityName
+    , "+"
+    , CountryCode
+    , "&limit=9&format=json"
+    , sep="")
+  
+  tryCatch(
+    x <- fromJSON(url)
+    , error=function(e){}
+    )
+  
+  tryCatch(
+  if(is.list(x) == TRUE){
+    tweets3$lon[counter] <- x[[1]]$lon
+    tweets3$lat[counter] <- x[[1]]$lat
+  } , error=function(e){}
+  )
+  counter <- counter + 1
+}
+```
+
+Then we can plot in a based map.
+
+```
+# remove NA values
+tweets4<-tweets3[!(tweets3$lon == "0"  & tweets3$lat=="0"),]
+tweets4$lon <-as.numeric( tweets4$lon)
+tweets4$lat <-as.numeric( tweets4$lat)
+# create basemap of the globe
+world_basemap <- ggplot() +
+  borders("world", colour = "gray85", fill = "gray80") +
+  theme_map()
+
+world_basemap +
+  geom_point(data = tweets4, aes(x = lon, y = lat),
+             colour = 'purple', alpha = .5) +
+  scale_size_continuous(range = c(1, 8),
+                        breaks = c(250, 500, 750, 1000)) +
+  labs(title = "Tweet Locations : Covid_19")
+```
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/17.PNG" width="400">
+
+We can clearly ﬁnd that, people in India and U.S particularly care about this disease. However, it seems like European people don’t concern a lot.
+
+## 4. Sentiment analysis
+Sentiment analysis is extremely useful in social media monitoring as it allows us to gain an overview of the wider public opinion behind certain topics. There are lots of approaches to implement such analysis in R, while in generally, those approaches can be divided into either the machine learning methods or dictionary-based methods.
+
+On the one hand, machine learning approaches are preferred when one strives for high prediction performance. However, machine learning usually works as a black-box, thereby making interpretations diﬃcult, and requires labeled data to proceed supervised learning, which generally is uneasy to collect in social media mining, as the Twitter data is time sensitive.
+
+On the other hand, dictionary-based approaches generate lists of positive and negative words. The respective occurrences of these words are then combined into a single sentiment score. Therefore, the underlying decisions become traceable, and researchers can understand the factors that result in a speciﬁc sentiment. Therefore, in this report we will only focus on dictionary based models.
+
+### 4.1 Search most common positive and negative words
+
+Dictionary-based methods aim to ﬁnd the total sentiment of a piece of text by adding up the individual sentiment scores for each word in the text, while the sentiment scores are referenced from sentiment lexicons. To implement the dictionary-based method, what we need do are cleaning the Twitter’s data, then call a inner join function to reference the sentiment score of each token, then we can analyze or visualize outputs.
+
+Once we ﬁnish collecting the data, we may want to know what are the most common positive and negative words in our tweets data. Let’s load the data and library, then implement data cleaning.
+
+```
+# load twitter library - the rtweet library is recommended now over twitteR
+# plotting and pipes - tidyverse!
+library(ggplot2)
+library(dplyr)
+# text mining library
+library(tidytext)
+library(ggraph)
+library(tidyr)
+library(widyr)
+
+# Load data 
+tweets <- read.csv2("tweets_COVID2019.csv")
+
+# Data clean up 
+tweet_clean <- tweets %>%
+  mutate(date_time = as.POSIXct(date_time, format = "%a %b %d %H:%M:%S +0000 %Y"),
+         tweet_text = gsub("\\s?(f|ht)(tp)(s?)(://)([^\\.]*)[\\.|/](\\S*)", 
+                           "", tweet_text)) %>% # remove signals
+  dplyr::select(tweet_text) %>%
+  unnest_tokens(word, tweet_text) %>%  # remove punctuation, convert to lowercase, add id for each tweet
+  anti_join(stop_words) %>% # remove stopwords in tweet
+  filter(!word == "rt") # remove all rows that contain "rt" or retweet
+```
+
+Next, we can join the words extracted from the tweets with the sentiment data. The “bing” sentiment data classiﬁes words as positive or negative. Note that other sentiment datasets use various classiﬁcation approaches,and we can learn more in the sentiment analysis chapter of the tidytext e-book.
+
+```
+bing_word_counts <- tweet_clean %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+```
+
+Finally, we can plot top words, grouped by positive vs. negative sentiment.
+
+```
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(title = "Sentiment during the COVID2019period.",
+       y = "Contribution to sentiment",
+       x = NULL) +
+  coord_flip()
+```
+
+From following graph, we see mostly positive words about safe, support and positive here (while in this case it may refer to ”tested positive”,which is bad, this can be view as one of the main drawbacks of dictionary based methods, as the lexicon is based on unigrams, i.e., single words) , and virus, crisis and death for negative words.
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/18.PNG" width="400">
+
+### 4.2 Track the trajectory of sentiments over time
+We can also examine how sentiment changes throughout time. We can do this with just a handful of lines that are mostly dplyr functions. First, we ﬁnd a sentiment score for each word using the Bing lexicon and innerjoin(). Next, we count up how many positive and negative words there are in deﬁned sections of of our tweets data. We deﬁne an index here to keep track time; this index (using integer division) counts up sections of 800 words of text.
+
+```
+COVID2019_sentiment <- tweet_clean %>%
+  mutate(linenumber = row_number())%>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, index = linenumber %/% 800, sentiment) %>%
+# Small sections of text may not have enough words in them 
+# to get a good estimate of sentiment while really large 
+# sections can wash out narrative structure. For our tweets data,
+# using 80 lines works well, but this can vary depending on individual texts, 
+# how many words were to start with, etc. 
+  
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative) 
+# We then use spread() so that we have negative and positive sentiment 
+# in separate columns, and lastly calculate a net sentiment (positive - negative)
+
+COVID2019_sentiment <- aggregate(sentiment ~ index, data= COVID2019_sentiment,  FUN = sum)
+# AfTer calculating the score of each word, we can aggregate by index 
+# to get the sum of words score, which is the sentiment score for each defined 
+# section of text
+```
+
+Now we can plot these sentiment scores across the plot trajectory. Notice that we are plotting against the index on the x-axis as a proxy to keep track of time.
+
+```
+library(ggplot2)
+ggplot(COVID2019_sentiment, aes(index, sentiment)) +
+  geom_col(show.legend = FALSE) 
+```
+
+The following graph shows that generally the negative sentiment of COVID2019 tweets data outperform the positive sentiment over time.
+
+<img src="https://raw.githubusercontent.com/chaoyangzhengnash/R-tutorial-Social-Media-Mining/master/figure/19.PNG" width="400">
+
+# 5. Summary
+Social media mining provides a way to understand the attitudes and opinions of public in terms of either natural or social events. In this report, ﬁrst we introduced and compared R packages commonly used for Twitter data mining; Then we explained how to use API to collect tweets through rtweet,and how search users and their friends to create an user network graph. After that, we also show how to proceed a quick data cleaning and implement classical visualization techniques to enable users to understand collected tweets data in a more clear way. Finally, the most common dictionary based sentiment analysis methods were introduced so that developers could easily get handful information from public.
+
+# 6. Reference
+Julia Silge and David Robinson. 2017. Text Mining with R: A Tidy Approach (1st. ed.). O’Reilly Media, Inc.
+
+Kaplan, A. M., Haenlein, M. (2012). Social media: back to the roots and back to the future. Journal of Systems and Information, 101-104.
+
+Kearney, M. W. (n.d.). rtweet. Retrieved from rtweet: https://rtweet.info/
+
+Ravindran, S. K., Garg, V. (2015). Mastering Social Media Mining with R. Birmingham: Packt Publishing.
+
+Sharan Kumar Ravindran and Vikram Garg. 2015. Mastering Social Media Mining with R. Packt Publishing.
+
+Tuten, T. L., Solomon, M. R. (2017). Social Media Marketing.
 
 
