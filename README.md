@@ -71,10 +71,10 @@ There is other way for authorization without browser. Users need to create acces
 should automatically ﬁnd the token for the next time when users start an R session on the same machine. When you ﬁnished this step, print out the token just saved for check.
 
 ```
-api_key<-"5PPc1TKJZx5FNjxNDIzCQjmKv"
-api_secret_key <- "mhlIz9U72H3MgT64MmjuSA2LJrtVjjygjTz2kGzLzmU0rqmjqU"
-access_token<-"1084492026266243073-dAm2knvd4ZCVjJbeSOZ94CVg3JICCR"
-access_token_secret<-"qiVC5gfDozoEF2cmoLqyrboa66UXswzSvEP1W5yX7n7QX"
+api_key<-"Balabalabala"
+api_secret_key <- "Balabalabala"
+access_token<-"Balabalabala"
+access_token_secret<-"Balabalabala"
 twitter_token<-create_token(
   app = appname,
   consumer_key = key,
